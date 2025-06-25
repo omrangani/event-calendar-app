@@ -195,7 +195,9 @@ const Calendar = () => {
               ← Previous
             </button>
             <h2 className="text-xl font-semibold text-gray-700">
-              {view.charAt(0).toUpperCase() + view.slice(1)} View
+              {view === 'month'
+                ? `${selectedDate.toLocaleString('default', { month: 'long' })} ${selectedDate.getFullYear()}`
+                : `${view.charAt(0).toUpperCase() + view.slice(1)} View`}
             </h2>
             <button
               onClick={goToNext}
