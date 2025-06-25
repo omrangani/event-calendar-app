@@ -15,6 +15,10 @@ const Calendar = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeEvent, setActiveEvent] = useState(null);
   const [search, setSearch] = useState('');
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
   const filteredEvents = events
     .filter(e => e.title.toLowerCase().includes(search.toLowerCase()))
@@ -45,15 +49,73 @@ const Calendar = () => {
   };
 
   const getWeekDates = () => {
-    const start = new Date(selectedDate);
-    start.setDate(start.getDate() - start.getDay());
+    const base = new Date(selectedDate);
+    base.setDate(base.getDate() - base.getDay() + weekOffset * 7);
     return [...Array(7)].map((_, i) => {
-      const d = new Date(start);
+      const d = new Date(base);
       d.setDate(d.getDate() + i);
       return d;
     });
   };
 
+  const isAnyDayInCurrentMonth = (weekDates) => {
+    return weekDates.some(date =>
+      date.getMonth() === currentMonth &&
+      date.getFullYear() === currentYear
+    );
+  };
+
+  const canGoPrev = () => {
+    const base = new Date(selectedDate);
+    base.setDate(base.getDate() - base.getDay() + (weekOffset - 1) * 7);
+    const weekDates = [...Array(7)].map((_, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+    return isAnyDayInCurrentMonth(weekDates);
+  };
+
+  const canGoNext = () => {
+    const base = new Date(selectedDate);
+    base.setDate(base.getDate() - base.getDay() + (weekOffset + 1) * 7);
+    const weekDates = [...Array(7)].map((_, i) => {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+    return isAnyDayInCurrentMonth(weekDates);
+  };
+
+  const isDayAtStart = () => (
+    view === 'day' && selectedDate.getDate() === 1 && selectedDate.getMonth() === currentMonth && selectedDate.getFullYear() === currentYear
+  );
+
+  const isDayAtEnd = () => (
+    view === 'day' && selectedDate.toDateString() === new Date(currentYear, currentMonth + 1, 0).toDateString()
+  );
+
+  const goToPrevious = () => {
+    if (view === 'month') return;
+    const prev = new Date(selectedDate);
+    if (view === 'day') {
+      if (isDayAtStart()) return;
+      prev.setDate(prev.getDate() - 1);
+    }
+    if (view === 'week' && canGoPrev()) setWeekOffset(prev => prev - 1);
+    if (view !== 'week') setSelectedDate(prev);
+  };
+
+  const goToNext = () => {
+    if (view === 'month') return;
+    const next = new Date(selectedDate);
+    if (view === 'day') {
+      if (isDayAtEnd()) return;
+      next.setDate(next.getDate() + 1);
+    }
+    if (view === 'week' && canGoNext()) setWeekOffset(prev => prev + 1);
+    if (view !== 'week') setSelectedDate(next);
+  };
 
   const generateMonthGrid = () => {
     const current = new Date(selectedDate);
@@ -85,6 +147,9 @@ const Calendar = () => {
         </div>
       ))
   );
+
+  const isPrevDisabled = view === 'day' ? isDayAtStart() : view === 'week' ? !canGoPrev() : true;
+  const isNextDisabled = view === 'day' ? isDayAtEnd() : view === 'week' ? !canGoNext() : true;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-green-100 py-10 px-4">
@@ -119,7 +184,28 @@ const Calendar = () => {
             + Add Event
           </button>
         </header>
+
         <main className="bg-white rounded-2xl p-6 shadow-inner min-h-[400px]">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={goToPrevious}
+              disabled={isPrevDisabled}
+              className={`text-blue-600 font-bold px-3 py-1 rounded transition ${isPrevDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-100'}`}
+            >
+              ← Previous
+            </button>
+            <h2 className="text-xl font-semibold text-gray-700">
+              {view.charAt(0).toUpperCase() + view.slice(1)} View
+            </h2>
+            <button
+              onClick={goToNext}
+              disabled={isNextDisabled}
+              className={`text-blue-600 font-bold px-3 py-1 rounded transition ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-100'}`}
+            >
+              Next →
+            </button>
+          </div>
+
           {view === 'month' && (
             <MonthView
               generateMonthGrid={generateMonthGrid}
@@ -127,11 +213,14 @@ const Calendar = () => {
               renderEvents={renderEvents}
             />
           )}
+
           {view === 'week' && (
             <WeekView
               getWeekDates={getWeekDates}
               openModal={openModal}
               renderEvents={renderEvents}
+              currentMonth={currentMonth}
+              currentYear={currentYear}
             />
           )}
           {view === 'day' && (
