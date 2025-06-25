@@ -1,12 +1,16 @@
 import './App.css'
+import Calendar from './Calendar';
+import { Provider } from 'react-redux';
+import store from './store';
 
 function App() {
-
   return (
-    <h1 class="text-3xl font-bold underline">
-      Hello world!
-    </h1>
-  )
+    <Provider store={store}>
+      <div className="min-h-screen bg-gray-50">
+        <Calendar />
+      </div>
+    </Provider>
+  );
 }
 
 export default App
